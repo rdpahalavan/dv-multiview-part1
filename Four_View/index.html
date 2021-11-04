@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        svg{
+            width: 40vw;
+            height: 40vw;
+        }
+        .axisX{
+    font-size: 30pt;
+}
+.axisY{
+    font-size: 30pt;
+}
+.axis{
+    font-size: 30pt;
+}
+circle{
+    fill-opacity: .7;
+}
+.title{
+    font-size: 50pt;
+    font-family: sans-serif;
+    text-anchor: middle;
+    color: black;
+    'z-index': 1001;
+}
+.label{
+    font-size: 30pt;
+    font-family: sans-serif;
+    text-anchor: middle;
+    'z-index': 1001;
+}
+.bars{
+    fill-opacity: .7;
+}
+.legend{
+    text-anchor: middle;
+    font-size: 20pt;
+    font-family: sans-serif;
+}
+.selected{
+    stroke: black;
+    stroke-width: 3px;
+    fill-opacity: 1;
+}
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+   
+    
+</head>
+<body>
+<div>
+    <svg viewBox="0 0 1000 1000" id="figure1">
+    </svg>
+    <svg viewBox="0 0 1000 1000" id="figure2">
+    </svg>
+    <svg viewBox="0 0 1000 1000" id="figure3">
+    </svg>
+    <svg viewBox="0 0 1000 1000" id="figure4">
+    </svg>
+</div>
+<script>
+
+    d3.tsv("./data/palmer_penguin_species.tsv")
+        .then(
+        function (data){
+            let species = ['Adelie','Gentoo','Chinstrap']
+            let classic_colors = [ "#440154", "#21908dff", "#fde725ff"]
+            let color = d3.scaleOrdinal()
+                .domain(species)
+                .range(classic_colors)
+
+
+            let formatted_data1 = d3.map(data,function (d){
+                return {
+                    x: d.culmen_length_mm,
+                    y: d.body_mass_g,
+                    r: d.flipper_length_mm,
+                    c: color(d.species)
+                }
+            })
+
+
+
+            let formatted_data2 = d3.map(data,function (d){
+                return {
+                    x: d.flipper_length_mm,
+                    y: d.body_mass_g,
+                    r: d.flipper_length_mm,
+                    c: color(d.species)
+                }
+            })
+            
+            let formatted_data3 = d3.map(data,function (d){
+                return {
+                    x: d.culmen_length_mm,
+                    y: d.culmen_depth_mm,
+                    r: d.flipper_length_mm,
+                    c: color(d.species)
+                }
+            })
+            
+            let formatted_data4 = d3.map(data,function (d){
+                return {
+                    x: d.flipper_length_mm,
+                    y: d.culmen_depth_mm,
+                    r: d.flipper_length_mm,
+                    c: color(d.species)
+                }
+            })
+
+
+            scatter_plot(formatted_data1,"#figure1",
+                title="Pinguines _1",
+                xLabel="culmen_length_mm",
+                yLabel="body_mass_g",
+                legend=species,
+                legendcolors=classic_colors,
+                margin=200
+            )
+
+            scatter_plot(formatted_data2,"#figure2",
+                title="Pinguines _2",
+                xLabel="flipper_length_mm",
+                yLabel="body_mass_g",
+                legend=species,
+                legendcolors=classic_colors,
+                margin=200
+            )
+            
+            scatter_plot(formatted_data3,"#figure3",
+                title="Pinguines _3",
+                xLabel="culmen_length_mm",
+                yLabel="culmen_depth_mm",
+                legend=species,
+                legendcolors=classic_colors,
+                margin=200
+            )
+            
+            scatter_plot(formatted_data4,"#figure4",
+                title="Pinguines _4",
+                xLabel="flipper_length_mm",
+                yLabel="culmen_depth_mm",
+                legend=species,
+                legendcolors=classic_colors,
+                margin=200
+            )
+        }
+    )
+    
+    function scatter_plot(data,
+                                 ax,
+                                 title="",
+                                 xLabel="",
+                                 yLabel="",
+                                 legend=[],
+                                 legendcolors=[],
+                                 margin = 100)
+{
+    let xScale= d3.scaleLinear().domain(d3.extent(data,function (d){return d.x}))
+                                .range([margin,1000-margin])
+    let yScale= d3.scaleLinear().domain(d3.extent(data,function (d){return d.y})).range([1000-margin,margin])
+    let rScale= d3.scaleLinear().domain(d3.extent(data,function (d){return d.r})).range([4,12])
+    let axis = d3.select(`${ax}`)
+
+    let markers = axis.selectAll('.markers')
+        .data(data)
+        .enter()
+        .append('g')
+        .attr('transform', function(d) {
+            return `translate(${xScale(d.x)}, ${yScale(d.y)})`})
+        .append('circle')
+        .attr("class",function (d,i){
+                    return `cls_${i}`})
+        .attr("r",function (d){return rScale(d.r)})
+        .attr("fill",function (d){return d.c})
+        .on("mouseenter",function (){
+            let class_name = d3.select(this).attr('class')
+            console.log(class_name)
+            d3.select(`.${class_name}`).classed("selected",true)
+        })
+        .on("mouseleave",function (){
+            let class_name = d3.select(this).attr('class')
+            setTimeout(
+                d=>{d3.select(`.${class_name}`).classed("selected",false)},
+                1000)
+
+        })
+
+    // x and y Axis function
+    let x_axis = d3.axisBottom(xScale).ticks(4)
+
+    let y_axis = d3.axisLeft(yScale).ticks(4)
+    //X Axis
+    axis.append("g").attr("class","axis")
+        .attr("transform", `translate(${0},${1000-margin})`)
+        .call(x_axis)
+    // Y Axis
+    axis.append("g").attr("class","axis")
+        .attr("transform", `translate(${margin},${0})`)
+        .call(y_axis)
+    // Labels
+    axis.append("g").attr("class","label")
+        .attr("transform", `translate(${500},${1000-10})`)
+        .append("text")
+        .attr("class","label")
+        .text(xLabel)
+
+    axis.append("g")
+        .attr("transform", `translate(${35},${500}) rotate(270)`)
+        .append("text")
+        .attr("class","label")
+        .text(yLabel)
+    // Title
+    axis.append('text')
+        .attr('x',500)
+        .attr('y',80)
+        .attr("text-anchor","middle")
+        .text(title)
+        .attr("class","title")
+
+    // legend
+    if (legend.length>0){
+        legend.forEach(
+            function (d,i){
+            let space = 50
+            let lgnd = axis.append("g").attr('transform',`translate(${900},${i*50 + space})`);
+            lgnd.append('rect').attr('width',function (d){return 40})
+                               .attr('height',function (d){return 40})
+                               .attr('fill',function (d){
+                                   return legendcolors[i]
+                               })
+                .attr("class",d)
+            lgnd.append('text').attr("class","legend").attr("dx","-80").attr("dy","30").text(d)
+
+        })
+    }
+
+}
+</script>
+</body>
+</html>
